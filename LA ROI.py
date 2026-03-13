@@ -90,7 +90,44 @@ async def clan(update: Update, context: ContextTypes.DEFAULT_TYPE):
 📝 *Description:* {claninfo.get('description', 'No description set.')}
 """
     await update.message.reply_text(text, parse_mode="Markdown")
+async def members(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    claninfo = getinfo(f"clans/{CLAN_TAG.replace('#','%23')}")
+
+    members = claninfo['memberList']
+
+    # Sort by trophies (highest first)
+    members_sorted = sorted(members, key=lambda x: x['trophies'], reverse=True)
+
+    topmembers = members_sorted[:10]
+
+    # Direction control characters
+    LRE = "\u202A"
+    PDF = "\u202C"
+
+    text = "🏰 <b>Clan Leaderboard</b>\n"
+    text += "━━━━━━━━━━━━━━━━━━\n\n"
+
+    for i, memb in enumerate(topmembers, start=1):
+
+        # Medal system
+        if i == 1:
+            medal = "🥇"
+        elif i == 2:
+            medal = "🥈"
+        elif i == 3:
+            medal = "🥉"
+        else:
+            medal = f"{i}."
+
+        # Force left-to-right for name
+        name = f"{LRE}{memb['name']}{PDF}"
+
+        text += f"{medal} <b>{name}</b>\n"
+        text += f"🏆 Trophies: <code>{memb['trophies']}</code>\n"
+        text += "━━━━━━━━━━━━━━━━━━\n"
+
+    await update.message.reply_text(text, parse_mode="HTML")
 # 5. EXECUTION
 if __name__ == "__main__":
     if not BOT_TOKEN or not COC_TOKEN:
