@@ -140,6 +140,7 @@ if __name__ == "__main__":
         app_bot.add_handler(CommandHandler("start", start))
         app_bot.add_handler(CommandHandler("help", help_command))
         app_bot.add_handler(CommandHandler("clan", clan))
+        app_bot.add_handler(CommandHandler("members", members))
 
         print("Bot is running...")
         app_bot.run_polling()
