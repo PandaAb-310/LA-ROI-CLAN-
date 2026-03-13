@@ -6,7 +6,6 @@ from flask import Flask
 from threading import Thread
 
 # 1. SAFEGUARDED TOKENS
-# These fetch from Render's Environment Variables
 BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 COC_TOKEN = os.environ.get('COC_API_KEY')
 CLAN_TAG = "#2GGRVV2YJ"
@@ -28,7 +27,6 @@ def keep_alive():
 
 # 3. HELPER FUNCTIONS
 def getinfo(endpoint):
-    # Fixed URL for CoC Proxy
     url = f"https://cocproxy.royaleapi.dev/v1/{endpoint}"
     headers = {
         "Authorization": f"Bearer {COC_TOKEN}",
@@ -37,10 +35,11 @@ def getinfo(endpoint):
 
     try:
         response = requests.get(url, headers=headers, timeout=10)
-        # Check if the response is actually JSON
+        # Safety: Check if we got a successful response (Status 200)
         if response.status_code == 200:
             return response.json()
         else:
+            # Return the error code so we know what went wrong
             return {"error": True, "reason": f"Status {response.status_code}"}
     except Exception as e:
         return {"error": True, "reason": str(e)}
@@ -55,6 +54,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Kept exactly as you requested to help you remember!
     help_text = """
 🏰 *Clan Bot Commands*
 
@@ -69,11 +69,63 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(help_text, parse_mode="Markdown")
 
 async def clan(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Properly encoding the tag
     encoded_tag = CLAN_TAG.replace('#', '%23')
     claninfo = getinfo(f"clans/{encoded_tag}")
 
-    # Check for the errors we managed in getinfo()
+    # Safety: Check if claninfo is actually the data or an error
+    if "error" in claninfo:
+        await update.message.reply_text(f"❌ Error: {claninfo.get('reason')}")
+        return
+
+    text = f"""
+🏰 *Clan Information*
+*Name:* {claninfo.get('name', 'N/A')}
+*Tag:* {CLAN_TAG}
+*Level:* {claninfo.get('clanLevel', 'N/A')}
+👥 *Members:* {claninfo.get('members', '0')}/50
+📝 *Description:* {claninfo.get('description', 'No description set.')}
+"""
+    await update.message.reply_text(text, parse_mode="Markdown")
+
+async def war(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    encoded_tag = CLAN_TAG.replace('#', '%23')
+    warinfo = getinfo(f"clans/{encoded_tag}/currentwar")
+
+    # Safety: Ensure the war data exists before trying to read it
+    if "error" in warinfo:
+        await update.message.reply_text("⚠️ War information unavailable (Check if War Log is Public).")
+        return
+    
+    # Safety: Handle the case where the clan is NOT in a war
+    if "state" not in warinfo or warinfo['state'] == 'notInWar':
+        await update.message.reply_text("💤 The clan is not currently in a war.")
+        return
+
+    text = f"""
+⚔️ *WAR BATTLE REPORT*
+🏰 *Clan:* {warinfo['clan']['name']}
+🛡 *Opponent:* {warinfo['opponent']['name']}
+⭐ Stars: {warinfo['clan']['stars']} — {warinfo['opponent']['stars']}
+⏳ Status: {warinfo['state'].upper()}
+"""
+    await update.message.reply_text(text, parse_mode="Markdown")
+
+# 5. EXECUTION
+if __name__ == "__main__":
+    if not BOT_TOKEN or not COC_TOKEN:
+        print("CRITICAL: Tokens missing!")
+    else:
+        keep_alive()
+        app_bot = ApplicationBuilder().token(BOT_TOKEN).build()
+        
+        # Adding your handlers
+        app_bot.add_handler(CommandHandler("start", start))
+        app_bot.add_handler(CommandHandler("help", help_command))
+        app_bot.add_handler(CommandHandler("clan", clan))
+        app_bot.add_handler(CommandHandler("war", war))
+        
+        print("Bot is running...")
+        app_bot.run_polling()
     if "error" in claninfo or "reason" in claninfo:
         await update.message.reply_text("⚠️ Sorry, I couldn't reach the village. Check the proxy or API key.")
         return
@@ -128,6 +180,25 @@ async def members(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += "━━━━━━━━━━━━━━━━━━\n"
 
     await update.message.reply_text(text, parse_mode="HTML")
+async def war(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    warinfo = getinfo(f"clans/{CLAN_TAG.replace('#','%23')}/currentwar")
+    text = f"""
+⚔️ <b>WAR BATTLE REPORT</b>
+━━━━━━━━━━━━━━━━━━
+🛡️ <b>DEFENDER:</b> {warinfo['clan']['name']}
+🏹 <b>OPPONENT:</b> {warinfo['opponent']['name']}
+
+📊 <b>SCOREBOARD</b>
+{warinfo['clan']['stars']} ⭐ <b>VS</b> ⭐ {warinfo['opponent']['stars']}
+
+💥 <b>DESTRUCTION</b>
+└ {warinfo['clan']['destructionPercentage']}% 🟥🟥⬜⬜ {warinfo['opponent']['destructionPercentage']}%
+
+⏳ <b>STATUS:</b> <code>{warinfo['state'].upper()}</code>
+👥 <b>SIZE:</b> {warinfo['teamSize']} vs {warinfo['teamSize']}
+━━━━━━━━━━━━━━━━━━
+"""
+    await update.message.reply_text(text,parse_mode='html')
 # 5. EXECUTION
 if __name__ == "__main__":
     if not BOT_TOKEN or not COC_TOKEN:
@@ -141,6 +212,8 @@ if __name__ == "__main__":
         app_bot.add_handler(CommandHandler("help", help_command))
         app_bot.add_handler(CommandHandler("clan", clan))
         app_bot.add_handler(CommandHandler("members", members))
+        app_bot.add_handler(CommandHandler("war", war))
+        
 
         print("Bot is running...")
         app_bot.run_polling()
