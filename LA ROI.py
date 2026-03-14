@@ -231,19 +231,21 @@ async def missed(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # 5. EXECUTION
 if __name__ == "__main__":
     if not BOT_TOKEN or not COC_TOKEN:
-        print("CRITICAL: Tokens missing in Environment Variables!")
+        print("CRITICAL: TELEGRAM_TOKEN or COC_API missing in Render Environment!")
     else:
         keep_alive() 
         app_bot = ApplicationBuilder().token(BOT_TOKEN).build()
+        
+        # All lines below are now perfectly aligned with 8 spaces
         app_bot.add_handler(CommandHandler("start", start))
         app_bot.add_handler(CommandHandler("help", help_command))
         app_bot.add_handler(CommandHandler("clan", clan))
         app_bot.add_handler(CommandHandler("members", members))
         app_bot.add_handler(CommandHandler("war", war))
         app_bot.add_handler(CommandHandler("top", top))
-        app_bot.add_handler(CommandHandler("donations", donations))
-		app_bot.add_handler(CommandHandler("missed", missed))
+        app_bot.add_handler(CommandHandler("donations", donations)) #
+        app_bot.add_handler(CommandHandler("missed", missed))       # 
+                 # 
 
         print("Bot is running...")
         app_bot.run_polling()
-	
