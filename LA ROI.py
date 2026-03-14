@@ -128,7 +128,45 @@ async def war(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ━━━━━━━━━━━━━━━━━━
 """
     await update.message.reply_text(text, parse_mode='HTML')
+async def top(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    status_msg = await update.message.reply_text("🔎 <i>Consulting the War Archives...</i>", parse_mode='HTML')
+    
+    Elites = []
+    ELITE_TAGS = ["#P0VQQ8CJ0", "#PVQPQY0P9", "#GPY00V9LG", "#90V9UUCLL", "#9JGY9Q98"]
+    
+    for playertag in ELITE_TAGS: 
+        playerinfo = getinfo(f"players/{playertag.replace('#','%23')}")
+        
+        if 'error' not in playerinfo:
+            Elites.append({
+                'name': playerinfo.get('name', "Unknown"),
+                'th': playerinfo.get('townHallLevel', 0), 
+                'trophies': playerinfo.get('trophies', 0),
+                'stars': playerinfo.get('warStars', 0)
+            })
 
+    
+    sortedlist = sorted(Elites, key=lambda x: x['stars'], reverse=True)
+    
+    text = "🎖️ <b>LA ROI: WAR LEGENDS</b> 🎖️\n"
+    text += "━━━━━━━━━━━━━━━━━━\n\n"
+
+    for i, p in enumerate(sortedlist, start=1):
+        medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(i, "🎖️")
+        
+        # We use <code> to force Monospace font which helps alignment
+        # We also keep the LRE/PDF shield just in case
+        safe_name = f"\u202A{p['name'].upper()}\u202C"
+        
+        text += f"{medal} <code><b>{safe_name}</b></code>\n"
+        text += f"⭐ War Stars: <code>{p['stars']}</code>\n"
+        text += f"🏰 Town Hall {p['th']} | 🏆 {p['trophies']}\n"
+        text += "──────────────────\n"
+
+    await status_msg.delete()
+    await update.message.reply_text(text, parse_mode='HTML')
+
+	
 # 5. EXECUTION
 if __name__ == "__main__":
     if not BOT_TOKEN or not COC_TOKEN:
@@ -141,6 +179,7 @@ if __name__ == "__main__":
         app_bot.add_handler(CommandHandler("clan", clan))
         app_bot.add_handler(CommandHandler("members", members))
         app_bot.add_handler(CommandHandler("war", war))
+        app_bot.add_handler(CommandHandler("top", top))
         
         print("Bot is running...")
         app_bot.run_polling()
