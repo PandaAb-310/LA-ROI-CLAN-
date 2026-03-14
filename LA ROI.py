@@ -188,7 +188,46 @@ async def donations(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total_sent = sum(m.get('donations', 0) for m in claninfo['memberList'])
     text += f"📊 <b>CLAN TOTAL:</b> <code>{total_sent}</code>"
     await update.message.reply_text(text, parse_mode='HTML')
+async def missed(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    warinfo = getinfo(f"clans/{CLAN_TAG.replace('#','%23')}/currentwar")
 
+    if "error" in warinfo or "state" not in warinfo:
+        await update.message.reply_text("⚠️ <b>War data unavailable.</b>", parse_mode='HTML')
+        return
+
+    if warinfo['state'] == 'notInWar':
+        await update.message.reply_text("🛡️ <b>LA ROI IS NOT IN WAR !!</b>", parse_mode='HTML')
+        return
+
+    missed_players = []
+    for player in warinfo['clan']['members']:
+        attacks_made = len(player.get('attacks', []))
+        
+        if attacks_made < 2:
+            missed_players.append({
+                'name': player['name'],
+                'missed': 2 - attacks_made,
+                'map_pos': player['mapPosition']
+            })
+
+    if not missed_players:
+        await update.message.reply_text("✅ <b>Perfect War!</b> No missed attacks found.", parse_mode='HTML')
+        return
+
+    missed_players = sorted(missed_players, key=lambda x: x['map_pos'])
+
+    text = "⚔️ <b>LA ROI: WAR DISCIPLINE</b>\n"
+    text += "<i>Reviewing incomplete battle entries</i>\n"
+    text += "<code>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</code>\n\n"
+
+    for p in missed_players:
+        text += f"⚠️  <b>Mr. {p['name'].upper()}</b>\n"
+        text += f"<code>  ├─ POSITION: #{p['map_pos']} </code>\n"
+        text += f"<code>  └─ MISSING:  {p['missed']} ATK </code>\n\n"
+
+    text += "<code>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</code>"
+
+    await update.message.reply_text(text, parse_mode='HTML')
 # 5. EXECUTION
 if __name__ == "__main__":
     if not BOT_TOKEN or not COC_TOKEN:
@@ -203,6 +242,7 @@ if __name__ == "__main__":
         app_bot.add_handler(CommandHandler("war", war))
         app_bot.add_handler(CommandHandler("top", top))
         app_bot.add_handler(CommandHandler("donations", donations))
+		app_bot.add_handler(CommandHandler("missed", missed))
 
         print("Bot is running...")
         app_bot.run_polling()
