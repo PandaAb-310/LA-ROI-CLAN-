@@ -6,8 +6,8 @@ from flask import Flask
 from threading import Thread
 
 # 1. SAFEGUARDED TOKENS
-BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
-COC_TOKEN = os.environ.get('COC_API_KEY')
+BOT_TOKEN = '8617516227:AAF8Q7-faaA6T_wUEFvGHQWAmEIgja7UU9U'
+COC_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6IjAzOTc1OGYxLWRkMGItNGVhNC04OTBjLTE0YmFkNzUwODViYSIsImlhdCI6MTc3MzQwNDA0MSwic3ViIjoiZGV2ZWxvcGVyL2Q1NThjNzZlLTUyNDctYmU1NS1jZjU2LTlhNTY2ZDFmMjAzOSIsInNjb3BlcyI6WyJjbGFzaCJdLCJsaW1pdHMiOlt7InRpZXIiOiJkZXZlbG9wZXIvc2lsdmVyIiwidHlwZSI6InRocm90dGxpbmcifSx7ImNpZHJzIjpbIjQ1Ljc5LjIxOC43OSJdLCJ0eXBlIjoiY2xpZW50In1dfQ.axNA1nCkhlnWp7mB3DeZwrAd8u2ROlm6KQn4Kg-6L8FdYcXdGMmF512Pu7NktIgX6IJ-ViYzBw94YNtwdD8OVA'
 CLAN_TAG = "#2GGRVV2YJ"
 
 # 2. FLASK KEEP-ALIVE SERVER
@@ -32,6 +32,7 @@ def getinfo(endpoint):
         "Authorization": f"Bearer {COC_TOKEN}",
         "Accept": "application/json"
     }
+
     try:
         response = requests.get(url, headers=headers, timeout=10)
         if response.status_code == 200:
@@ -52,15 +53,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_text = """
-🏰 *Clan Bot Commands*
-
-📌 /start – Start the bot  
-📊 /clan – Clan information  
-👥 /members – Top clan members  
-🏆 /top – Top players  
-🎯 /donations – Donation leaderboard  
-⚔️ /war – Current war status  
-🚨 /missed – Missed war attacks  
+*Here’s what I can do:*
+📜 /start – Start the bot  
+🏰 /clan – Show clan information  
+🏆 /members – Show top trophy earners
+🎖️ /top – War Legends leaderboard
+🎯 /donations – Donation leaderboard
+⚔️ /war – Current war status
 """
     await update.message.reply_text(help_text, parse_mode="Markdown")
 
@@ -69,7 +68,7 @@ async def clan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     claninfo = getinfo(f"clans/{encoded_tag}")
 
     if "error" in claninfo:
-        await update.message.reply_text(f"❌ Error: {claninfo.get('reason')}")
+        await update.message.reply_text("⚠️ Sorry, I couldn't reach the village.")
         return
 
     text = f"""
@@ -77,57 +76,58 @@ async def clan(update: Update, context: ContextTypes.DEFAULT_TYPE):
 *Name:* {claninfo.get('name', 'N/A')}
 *Tag:* {CLAN_TAG}
 *Level:* {claninfo.get('clanLevel', 'N/A')}
+
 👥 *Members:* {claninfo.get('members', '0')}/50
 🎯 *Required Trophies:* {claninfo.get('requiredTrophies', 'N/A')}
+
 📝 *Description:* {claninfo.get('description', 'No description set.')}
 """
     await update.message.reply_text(text, parse_mode="Markdown")
 
 async def members(update: Update, context: ContextTypes.DEFAULT_TYPE):
     claninfo = getinfo(f"clans/{CLAN_TAG.replace('#','%23')}")
-    
-    if "error" in claninfo or "memberList" not in claninfo:
-        await update.message.reply_text("⚠️ Could not fetch member list.")
-        return
-
-    members_list = claninfo['memberList']
-    members_sorted = sorted(members_list, key=lambda x: x.get('trophies', 0), reverse=True)
+    member_list = claninfo['memberList']
+    members_sorted = sorted(member_list, key=lambda x: x['trophies'], reverse=True)
     topmembers = members_sorted[:10]
 
-    LRE, PDF = "\u202A", "\u202C"
-    text = "🏰 <b>Clan Leaderboard</b>\n━━━━━━━━━━━━━━━━━━\n\n"
+    text = "🏰 <b>Clan Leaderboard</b>\n"
+    text += "━━━━━━━━━━━━━━━━━━\n\n"
 
     for i, memb in enumerate(topmembers, start=1):
         medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(i, f"{i}.")
-        name = f"{LRE}{memb['name']}{PDF}"
-        text += f"{medal} <b>{name}</b>\n🏆 Trophies: <code>{memb.get('trophies', 0)}</code>\n━━━━━━━━━━━━━━━━━━\n"
+        # Added Mr. Prefix
+        text += f"{medal} <b>Mr. {memb['name']}</b>\n"
+        text += f"🏆 Trophies: <code>{memb['trophies']}</code>\n"
+        text += "━━━━━━━━━━━━━━━━━━\n"
 
     await update.message.reply_text(text, parse_mode="HTML")
 
 async def war(update: Update, context: ContextTypes.DEFAULT_TYPE):
     warinfo = getinfo(f"clans/{CLAN_TAG.replace('#','%23')}/currentwar")
 
-    if "error" in warinfo or "clan" not in warinfo:
-        await update.message.reply_text("⚠️ War information unavailable or Clan not in war.")
+    if "error" in warinfo:
+        await update.message.reply_text("⚠️ War information unavailable right now.")
+        return
+
+    if "clan" not in warinfo:
+        await update.message.reply_text("⚠️ Your clan is currently not in war.")
         return
 
     text = f"""
-⚔️ <b>WAR BATTLE REPORT</b>
+⚔️ *WAR BATTLE REPORT*
 ━━━━━━━━━━━━━━━━━━
-🛡️ <b>DEFENDER:</b> {warinfo['clan']['name']}
-🏹 <b>OPPONENT:</b> {warinfo['opponent']['name']}
 
-📊 <b>SCOREBOARD</b>
-{warinfo['clan']['stars']} ⭐ <b>VS</b> ⭐ {warinfo['opponent']['stars']}
+🏰 *Clan:* {warinfo['clan']['name']}
+🛡 *Opponent:* {warinfo['opponent']['name']}
 
-💥 <b>DESTRUCTION</b>
-└ {warinfo['clan']['destructionPercentage']}% 🟥🟥⬜⬜ {warinfo['opponent']['destructionPercentage']}%
+⭐ Stars: {warinfo['clan']['stars']} — {warinfo['opponent']['stars']}
+💥 Destruction: {warinfo['clan']['destructionPercentage']}% — {warinfo['opponent']['destructionPercentage']}%
 
-⏳ <b>STATUS:</b> <code>{warinfo['state'].upper()}</code>
-👥 <b>SIZE:</b> {warinfo['teamSize']} vs {warinfo['teamSize']}
-━━━━━━━━━━━━━━━━━━
+👥 War Size: {warinfo['teamSize']} vs {warinfo['teamSize']}
+⏳ Status: {warinfo['state']}
 """
-    await update.message.reply_text(text, parse_mode='HTML')
+    await update.message.reply_text(text, parse_mode="Markdown")
+
 async def top(update: Update, context: ContextTypes.DEFAULT_TYPE):
     status_msg = await update.message.reply_text("🔎 <i>Consulting the War Archives...</i>", parse_mode='HTML')
     
@@ -136,7 +136,6 @@ async def top(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     for playertag in ELITE_TAGS: 
         playerinfo = getinfo(f"players/{playertag.replace('#','%23')}")
-        
         if 'error' not in playerinfo:
             Elites.append({
                 'name': playerinfo.get('name', "Unknown"),
@@ -145,7 +144,6 @@ async def top(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 'stars': playerinfo.get('warStars', 0)
             })
 
-    
     sortedlist = sorted(Elites, key=lambda x: x['stars'], reverse=True)
     
     text = "🎖️ <b>LA ROI: WAR LEGENDS</b> 🎖️\n"
@@ -153,26 +151,51 @@ async def top(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for i, p in enumerate(sortedlist, start=1):
         medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(i, "🎖️")
-        
-        # We use <code> to force Monospace font which helps alignment
-        # We also keep the LRE/PDF shield just in case
-        safe_name = f"\u202A{p['name'].upper()}\u202C"
-        
-        text += f"{medal} <code><b>{safe_name}</b></code>\n"
+        # Added Mr. Prefix
+        text += f"{medal} <code><b>Mr. {p['name'].upper()}</b></code>\n"
         text += f"⭐ War Stars: <code>{p['stars']}</code>\n"
         text += f"🏰 Town Hall {p['th']} | 🏆 {p['trophies']}\n"
         text += "──────────────────\n"
 
     await status_msg.delete()
     await update.message.reply_text(text, parse_mode='HTML')
+    
+async def donations(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    claninfo = getinfo(f"clans/{CLAN_TAG.replace('#','%23')}")
+    
+    if 'error' in claninfo or 'memberList' not in claninfo:
+        await update.message.reply_text("⚠️ <b>Service Unavailable:</b> Data sync failed.")
+        return
 
+    sorted_members = sorted(claninfo['memberList'], key=lambda x: x.get('donations', 0), reverse=True)
+    top_10 = sorted_members[:10]
+
+    text = "🎯 <b>LA ROI: DONATION ELITE</b>\n"
+    text += "<i>Tracking active contributions for the season</i>\n"
+    text += "<code>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</code>\n\n"
+
+    for i, m in enumerate(top_10, start=1):
+        rank = {1: "🥇", 2: "🥈", 3: "🥉"}.get(i, f" {i} ")
+        name = m.get('name', 'Unknown')
+        sent = m.get('donations', 0)
+        received = m.get('donationsReceived', 0)
+
+        # Already had Mr. Prefix here
+        text += f"{rank}  <b>Mr. {name.upper()}</b>\n"
+        text += f"<code>  ├─ GIVEN: {sent:<5} </code>\n"
+        text += f"<code>  └─ RECVD: {received:<5} </code>\n\n"
 	
+    text += "<code>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</code>\n"
+    total_sent = sum(m.get('donations', 0) for m in claninfo['memberList'])
+    text += f"📊 <b>CLAN TOTAL:</b> <code>{total_sent}</code>"
+    await update.message.reply_text(text, parse_mode='HTML')
+
 # 5. EXECUTION
 if __name__ == "__main__":
     if not BOT_TOKEN or not COC_TOKEN:
         print("CRITICAL: Tokens missing!")
     else:
-        keep_alive()
+        keep_alive() 
         app_bot = ApplicationBuilder().token(BOT_TOKEN).build()
         app_bot.add_handler(CommandHandler("start", start))
         app_bot.add_handler(CommandHandler("help", help_command))
@@ -180,7 +203,8 @@ if __name__ == "__main__":
         app_bot.add_handler(CommandHandler("members", members))
         app_bot.add_handler(CommandHandler("war", war))
         app_bot.add_handler(CommandHandler("top", top))
-        
+        app_bot.add_handler(CommandHandler("donations", donations))
+
         print("Bot is running...")
         app_bot.run_polling()
-    
+	
