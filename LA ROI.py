@@ -8,7 +8,7 @@ from threading import Thread
 # 1. SAFEGUARDED TOKENS (FETCHED FROM RENDER SECRETS)
 # On Render, go to: Dashboard -> Environment -> Add Environment Variable
 # Add 'BOT_TOKEN' and 'COC_TOKEN' there.
-BOT_TOKEN = os.environ.get('BOT_TOKEN')
+BOT_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 COC_TOKEN = os.environ.get('COC_TOKEN')
 CLAN_TAG = "#2GGRVV2YJ"
 
