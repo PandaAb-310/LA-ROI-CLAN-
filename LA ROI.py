@@ -9,7 +9,7 @@ from threading import Thread
 # On Render, go to: Dashboard -> Environment -> Add Environment Variable
 # Add 'BOT_TOKEN' and 'COC_TOKEN' there.
 BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
-COC_TOKEN = os.environ.get('COC_API')
+COC_TOKEN = os.environ.get('COC_API_KEY')
 CLAN_TAG = "#2GGRVV2YJ"
 
 # 2. FLASK KEEP-ALIVE SERVER
