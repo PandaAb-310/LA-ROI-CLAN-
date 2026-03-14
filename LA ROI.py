@@ -5,9 +5,11 @@ import requests
 from flask import Flask
 from threading import Thread
 
-# 1. SAFEGUARDED TOKENS
-BOT_TOKEN = '8617516227:AAF8Q7-faaA6T_wUEFvGHQWAmEIgja7UU9U'
-COC_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6IjAzOTc1OGYxLWRkMGItNGVhNC04OTBjLTE0YmFkNzUwODViYSIsImlhdCI6MTc3MzQwNDA0MSwic3ViIjoiZGV2ZWxvcGVyL2Q1NThjNzZlLTUyNDctYmU1NS1jZjU2LTlhNTY2ZDFmMjAzOSIsInNjb3BlcyI6WyJjbGFzaCJdLCJsaW1pdHMiOlt7InRpZXIiOiJkZXZlbG9wZXIvc2lsdmVyIiwidHlwZSI6InRocm90dGxpbmcifSx7ImNpZHJzIjpbIjQ1Ljc5LjIxOC43OSJdLCJ0eXBlIjoiY2xpZW50In1dfQ.axNA1nCkhlnWp7mB3DeZwrAd8u2ROlm6KQn4Kg-6L8FdYcXdGMmF512Pu7NktIgX6IJ-ViYzBw94YNtwdD8OVA'
+# 1. SAFEGUARDED TOKENS (FETCHED FROM RENDER SECRETS)
+# On Render, go to: Dashboard -> Environment -> Add Environment Variable
+# Add 'BOT_TOKEN' and 'COC_TOKEN' there.
+BOT_TOKEN = os.environ.get('BOT_TOKEN')
+COC_TOKEN = os.environ.get('COC_TOKEN')
 CLAN_TAG = "#2GGRVV2YJ"
 
 # 2. FLASK KEEP-ALIVE SERVER
@@ -95,7 +97,6 @@ async def members(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for i, memb in enumerate(topmembers, start=1):
         medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(i, f"{i}.")
-        # Added Mr. Prefix
         text += f"{medal} <b>Mr. {memb['name']}</b>\n"
         text += f"🏆 Trophies: <code>{memb['trophies']}</code>\n"
         text += "━━━━━━━━━━━━━━━━━━\n"
@@ -151,7 +152,6 @@ async def top(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for i, p in enumerate(sortedlist, start=1):
         medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(i, "🎖️")
-        # Added Mr. Prefix
         text += f"{medal} <code><b>Mr. {p['name'].upper()}</b></code>\n"
         text += f"⭐ War Stars: <code>{p['stars']}</code>\n"
         text += f"🏰 Town Hall {p['th']} | 🏆 {p['trophies']}\n"
@@ -180,7 +180,6 @@ async def donations(update: Update, context: ContextTypes.DEFAULT_TYPE):
         sent = m.get('donations', 0)
         received = m.get('donationsReceived', 0)
 
-        # Already had Mr. Prefix here
         text += f"{rank}  <b>Mr. {name.upper()}</b>\n"
         text += f"<code>  ├─ GIVEN: {sent:<5} </code>\n"
         text += f"<code>  └─ RECVD: {received:<5} </code>\n\n"
@@ -193,7 +192,7 @@ async def donations(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # 5. EXECUTION
 if __name__ == "__main__":
     if not BOT_TOKEN or not COC_TOKEN:
-        print("CRITICAL: Tokens missing!")
+        print("CRITICAL: Tokens missing in Environment Variables!")
     else:
         keep_alive() 
         app_bot = ApplicationBuilder().token(BOT_TOKEN).build()
